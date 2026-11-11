@@ -1,4 +1,3 @@
-// apps/api/vitest.config.ts
 import { defineConfig } from 'vitest/config';
 
 process.loadEnvFile('.env');
