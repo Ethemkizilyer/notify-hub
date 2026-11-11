@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-  "typecheck": "tsc"
-},
-"exports": {
-  ".": "./src/index.ts"
-}
+    "typecheck": "tsc"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
 }

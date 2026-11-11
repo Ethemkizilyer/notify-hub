@@ -6,18 +6,18 @@ Gerçek zamanlı sipariş bildirim platformu. Kullanıcılar ürünleri inceler,
 
 ## Teknolojiler
 
-| Katman | Teknoloji |
-| --- | --- |
-| Dil | TypeScript (strict) |
-| Backend | Node.js 22 LTS, Express 5, Prisma ORM, Zod |
-| Veritabanı | PostgreSQL 17 |
-| Cache / Kuyruk | Redis 7, BullMQ |
-| Gerçek zamanlı | Socket.IO |
-| Frontend | React 19, Vite, MUI, React Router, TanStack Query, React Hook Form, Zustand |
-| Test | Vitest, Supertest, React Testing Library |
-| Kalite | ESLint, Prettier, Husky, lint-staged, Conventional Commits |
-| Altyapı | Docker, Docker Compose, Nginx, GitHub Actions |
-| Dokümantasyon | OpenAPI (Swagger UI) |
+| Katman         | Teknoloji                                                                   |
+| -------------- | --------------------------------------------------------------------------- |
+| Dil            | TypeScript (strict)                                                         |
+| Backend        | Node.js 22 LTS, Express 5, Prisma ORM, Zod                                  |
+| Veritabanı     | PostgreSQL 17                                                               |
+| Cache / Kuyruk | Redis 7, BullMQ                                                             |
+| Gerçek zamanlı | Socket.IO                                                                   |
+| Frontend       | React 19, Vite, MUI, React Router, TanStack Query, React Hook Form, Zustand |
+| Test           | Vitest, Supertest, React Testing Library                                    |
+| Kalite         | ESLint, Prettier, Husky, lint-staged, Conventional Commits                  |
+| Altyapı        | Docker, Docker Compose, Nginx, GitHub Actions                               |
+| Dokümantasyon  | OpenAPI (Swagger UI)                                                        |
 
 ## Çalıştırma
 
