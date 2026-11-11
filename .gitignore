@@ -1,0 +1,24 @@
+
+# Dependency directories
+node_modules
+
+# Build output directories
+dist
+build
+coverage
+
+#Env files
+.env*
+!.env.example
+
+# Ignore log files and error reports
+*.log
+
+#OS generated files
+Thumbs.db
+.DS_Store
+
+# Local docs and AI files
+docs/
+AGENTS.md
+.agents/
