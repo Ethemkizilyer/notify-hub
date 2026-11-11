@@ -18,7 +18,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "prepare": "husky",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "dev:api": "npm run dev -w @notifyhub/api"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
