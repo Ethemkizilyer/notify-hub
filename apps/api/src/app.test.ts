@@ -8,6 +8,11 @@ describe('health endpoint', () => {
 
     expect(res.body).toEqual({ data: { status: 'ok' } });
   });
+  it('includes helmet security headers', async () => {
+    const res = await request(app).get('/api/v1/health').expect(200);
+
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+  });
 });
 
 describe('unknown routes', () => {
