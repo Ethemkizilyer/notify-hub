@@ -19,7 +19,8 @@
     "prepare": "husky",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "dev:api": "npm run dev -w @notifyhub/api"
+    "dev:api": "npm run dev -w @notifyhub/api",
+    "test": "npm run test --workspaces --if-present"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
