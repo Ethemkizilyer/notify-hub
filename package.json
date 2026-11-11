@@ -1,0 +1,10 @@
+{
+  "name": "notify-hub",
+  "private": true,
+  "description": "Real-time order notification platform",
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": {
+    "node": ">=22"
+  }
+}
