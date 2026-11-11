@@ -16,7 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
