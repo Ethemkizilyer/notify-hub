@@ -28,4 +28,8 @@ export class AppError extends Error {
   static conflict(message: string, details?: unknown): AppError {
     return new AppError(409, 'CONFLICT', message, details);
   }
+
+  static serviceUnavailable(message = 'Service unavailable'): AppError {
+    return new AppError(503, 'SERVICE_UNAVAILABLE', message);
+  }
 }
