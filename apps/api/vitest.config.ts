@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-process.loadEnvFile('.env');
+process.loadEnvFile('.env.test');
 
 export default defineConfig({
   resolve: {
@@ -8,5 +8,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    fileParallelism: false,
+    globalSetup: './tests/global-setup.ts',
+    setupFiles: './tests/setup.ts',
   },
 });
