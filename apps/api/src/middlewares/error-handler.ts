@@ -1,3 +1,4 @@
+import { Prisma } from '@/generated/prisma/client';
 import { AppError } from '@/utils/app-error';
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
@@ -19,6 +20,15 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
         code: err.code,
         message: err.message,
         ...(err.details === undefined ? {} : { details: err.details }),
+      },
+    });
+    return;
+  }
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+    res.status(409).json({
+      error: {
+        code: 'CONFLICT',
+        message: 'A record with this value already exists',
       },
     });
     return;
