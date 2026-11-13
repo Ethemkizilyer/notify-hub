@@ -3,6 +3,7 @@ import request from 'supertest';
 import { afterAll, describe, expect, it } from 'vitest';
 import { app } from '@/app';
 import { prisma } from '@/lib/prisma';
+import { loginAs } from '../../../tests/helpers';
 
 type ProductDto = {
   id: string;
@@ -135,8 +136,11 @@ describe('GET /api/v1/products/:id', () => {
 
 describe('POST /api/v1/products', () => {
   it('creates a product and returns 201', async () => {
+    const token = await loginAs('ADMIN');
+
     const res = await request(app)
       .post('/api/v1/products')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'New Product', description: 'A nice product', priceCents: 2500, stock: 10 });
     const body = res.body as ProductResponse;
 
@@ -149,8 +153,10 @@ describe('POST /api/v1/products', () => {
   });
 
   it('returns 400 VALIDATION_ERROR for a negative price', async () => {
+    const token = await loginAs('ADMIN');
     const res = await request(app)
       .post('/api/v1/products')
+      .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Bad Product', priceCents: -100 });
     const body = res.body as ErrorResponse;
 
@@ -159,11 +165,36 @@ describe('POST /api/v1/products', () => {
   });
 
   it('returns 400 when name is missing', async () => {
-    const res = await request(app).post('/api/v1/products').send({ priceCents: 100 });
+    const token = await loginAs('ADMIN');
+    const res = await request(app)
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ priceCents: 100 });
     const body = res.body as ErrorResponse;
 
     expect(res.status).toBe(400);
     expect(body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 401 without a token', async () => {
+    const res = await request(app)
+      .post('/api/v1/products')
+      .send({ name: 'No Auth', priceCents: 100 });
+
+    expect(res.status).toBe(401);
+    expect((res.body as ErrorResponse).error.code).toBe('UNAUTHORIZED');
+  });
+
+  it('returns 403 for a non-admin user', async () => {
+    const token = await loginAs('USER');
+
+    const res = await request(app)
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Forbidden', priceCents: 100 });
+
+    expect(res.status).toBe(403);
+    expect((res.body as ErrorResponse).error.code).toBe('FORBIDDEN');
   });
 });
 
@@ -171,7 +202,11 @@ describe('PATCH /api/v1/products/:id', () => {
   it('updates only the given fields', async () => {
     const product = await createProduct({ stock: 5 });
 
-    const res = await request(app).patch(`/api/v1/products/${product.id}`).send({ stock: 3 });
+    const token = await loginAs('ADMIN');
+    const res = await request(app)
+      .patch(`/api/v1/products/${product.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ stock: 3 });
     const body = res.body as ProductResponse;
 
     expect(res.status).toBe(200);
@@ -180,7 +215,11 @@ describe('PATCH /api/v1/products/:id', () => {
   });
 
   it('returns 404 for an unknown id', async () => {
-    const res = await request(app).patch(`/api/v1/products/${randomUUID()}`).send({ stock: 3 });
+    const token = await loginAs('ADMIN');
+    const res = await request(app)
+      .patch(`/api/v1/products/${randomUUID()}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ stock: 3 });
     const body = res.body as ErrorResponse;
 
     expect(res.status).toBe(404);
@@ -192,19 +231,27 @@ describe('DELETE /api/v1/products/:id', () => {
   it('soft-deletes: removes from list and detail returns 404', async () => {
     const product = await createProduct();
 
-    const del = await request(app).delete(`/api/v1/products/${product.id}`);
+    const token = await loginAs('ADMIN');
+    const del = await request(app)
+      .delete(`/api/v1/products/${product.id}`)
+      .set('Authorization', `Bearer ${token}`);
     expect(del.status).toBe(204);
 
-    const list = await request(app).get('/api/v1/products');
+    const list = await request(app).get('/api/v1/products').set('Authorization', `Bearer ${token}`);
     const listBody = list.body as ListProductsResponse;
     expect(listBody.data).toHaveLength(0);
 
-    const detail = await request(app).get(`/api/v1/products/${product.id}`);
+    const detail = await request(app)
+      .get(`/api/v1/products/${product.id}`)
+      .set('Authorization', `Bearer ${token}`);
     expect(detail.status).toBe(404);
   });
 
   it('returns 404 for an unknown id', async () => {
-    const res = await request(app).delete(`/api/v1/products/${randomUUID()}`);
+    const token = await loginAs('ADMIN');
+    const res = await request(app)
+      .delete(`/api/v1/products/${randomUUID()}`)
+      .set('Authorization', `Bearer ${token}`);
     const body = res.body as ErrorResponse;
 
     expect(res.status).toBe(404);
