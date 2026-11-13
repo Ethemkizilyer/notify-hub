@@ -91,3 +91,8 @@ export async function login(input: LoginInput) {
 
   return { accessToken, refreshToken, user: toPublicUser(user) };
 }
+export async function getMe(userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw AppError.notFound('User not found');
+  return toPublicUser(user);
+}
