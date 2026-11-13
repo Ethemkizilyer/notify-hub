@@ -27,6 +27,10 @@ export interface AccessTokenPayload {
   role: Role;
 }
 
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 export function toPublicUser(user: UserModel) {
   return {
     id: user.id,
@@ -44,7 +48,7 @@ function signAccessToken(user: UserModel): string {
 
 async function createRefreshToken(userId: string): Promise<string> {
   const token = randomBytes(48).toString('base64url');
-  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const tokenHash = hashToken(token);
   await prisma.refreshToken.create({
     data: {
       userId,
@@ -90,6 +94,41 @@ export async function login(input: LoginInput) {
   const refreshToken = await createRefreshToken(user.id);
 
   return { accessToken, refreshToken, user: toPublicUser(user) };
+}
+
+export async function refresh(rawToken: string | undefined) {
+  if (!rawToken) {
+    throw AppError.unauthorized('Missing refresh token');
+  }
+
+  const tokenHash = hashToken(rawToken);
+  const storedToken = await prisma.refreshToken.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+
+  if (!storedToken || storedToken.revokedAt !== null || storedToken.expiresAt <= new Date()) {
+    throw AppError.unauthorized('Invalid or expired refresh token');
+  }
+
+  await prisma.refreshToken.update({
+    where: { id: storedToken.id },
+    data: { revokedAt: new Date() },
+  });
+
+  const accessToken = signAccessToken(storedToken.user);
+  const refreshToken = await createRefreshToken(storedToken.userId);
+
+  return { accessToken, refreshToken, user: toPublicUser(storedToken.user) };
+}
+
+export async function logout(rawToken: string | undefined): Promise<void> {
+  if (!rawToken) return;
+
+  await prisma.refreshToken.updateMany({
+    where: { tokenHash: hashToken(rawToken), revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
 }
 export async function getMe(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
