@@ -8,7 +8,7 @@ import { env } from '@/config/env';
 import jwt from 'jsonwebtoken';
 import { createHash, randomBytes } from 'node:crypto';
 
-const PUBLIC_USER_SELECT = {
+export const PUBLIC_USER_SELECT = {
   id: true,
   email: true,
   fullName: true,
