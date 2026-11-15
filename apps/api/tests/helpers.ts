@@ -26,11 +26,27 @@ export async function createUser(
   });
 }
 
-export async function loginAs(role: Role = 'USER'): Promise<string> {
+export async function loginWithCookie(role: Role = 'USER') {
   const user = await createUser({ role });
   const res = await request(app)
     .post('/api/v1/auth/login')
     .send({ email: user.email, password: TEST_PASSWORD });
+
   const body = res.body as { data: { accessToken: string } };
-  return body.data.accessToken;
+  const headers = res.headers as Record<string, string | string[] | undefined>;
+  const setCookie = headers['set-cookie'];
+  const cookieHeader = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+  const refreshToken =
+    typeof cookieHeader === 'string' ? /refreshToken=([^;]+)/.exec(cookieHeader)?.[1] : undefined;
+
+  if (!refreshToken) {
+    throw new Error('refreshToken cookie missing in login response');
+  }
+
+  return { accessToken: body.data.accessToken, refreshToken, user };
+}
+
+export async function loginAs(role: Role = 'USER'): Promise<string> {
+  const { accessToken } = await loginWithCookie(role);
+  return accessToken;
 }
