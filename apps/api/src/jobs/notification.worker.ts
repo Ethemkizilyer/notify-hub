@@ -1,4 +1,5 @@
 import { Worker, type Job } from 'bullmq';
+import { Emitter } from '@socket.io/redis-emitter';
 import Redis from 'ioredis';
 import { env } from '@/config/env';
 import { prisma } from '@/lib/prisma';
@@ -10,6 +11,9 @@ type NotificationJobData = { orderId: string };
 const connection = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: null,
 });
+
+const emitterConnection = new Redis(env.REDIS_URL);
+const emitter = new Emitter(emitterConnection);
 
 async function processNotificationJob(job: Job<NotificationJobData>): Promise<void> {
   const order = await prisma.order.findUnique({
@@ -31,22 +35,26 @@ async function processNotificationJob(job: Job<NotificationJobData>): Promise<vo
   }
 
   if (job.name === 'order-created') {
-    await notificationsService.createForAdmins({
-      type: 'ORDER_CREATED',
+    const content = {
+      type: 'ORDER_CREATED' as const,
       title: 'New order received',
       message: `Order for ${order.user.fullName} — ${order.items.length} item(s), total ${(order.totalCents / 100).toFixed(2)}`,
       orderId: order.id,
-    });
+    };
+    await notificationsService.createForAdmins(content);
+    emitter.to('role:ADMIN').emit('notification:new', content);
     return;
   }
 
   if (job.name === 'order-status-changed') {
-    await notificationsService.createForUser(order.userId, {
-      type: 'ORDER_STATUS_CHANGED',
+    const content = {
+      type: 'ORDER_STATUS_CHANGED' as const,
       title: 'Order status updated',
       message: `Your order is now ${order.status}`,
       orderId: order.id,
-    });
+    };
+    await notificationsService.createForUser(order.userId, content);
+    emitter.to(`user:${order.userId}`).emit('notification:new', content);
     return;
   }
 
@@ -69,5 +77,6 @@ notificationWorker.on('failed', (job, error) => {
 
 export async function closeNotificationWorker(): Promise<void> {
   await notificationWorker.close();
+  emitterConnection.disconnect();
   connection.disconnect();
 }
