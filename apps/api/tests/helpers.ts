@@ -50,3 +50,17 @@ export async function loginAs(role: Role = 'USER'): Promise<string> {
   const { accessToken } = await loginWithCookie(role);
   return accessToken;
 }
+
+export async function createProduct(
+  data: {
+    name?: string;
+    description?: string;
+    priceCents?: number;
+    stock?: number;
+    isActive?: boolean;
+  } = {},
+) {
+  return prisma.product.create({
+    data: { name: 'Test Product', priceCents: 2500, stock: 10, ...data },
+  });
+}
