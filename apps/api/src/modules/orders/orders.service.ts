@@ -1,13 +1,16 @@
 import { prisma } from '@/lib/prisma';
 import { AppError } from '@/utils/app-error';
 import type { CreateOrderInput, ListOrdersQuery } from './orders.schema';
-import type { OrderStatus, Prisma, Role } from '@/generated/prisma/browser';
+import type { OrderStatus, Prisma, Role } from '@/generated/prisma/client';
 import { PUBLIC_USER_SELECT } from '../auth/auth.service';
 import { getSkip } from '@/utils/pagination';
+import { enqueueOrderCreated, enqueueOrderStatusChanged } from '@/jobs/notification.queue';
+import { logger } from '@/lib/logger';
+
 type OrderViewer = { id: string; role: Role };
 
 export async function createOrder(userId: string, input: CreateOrderInput) {
-  return prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     const productIds = input.items.map((item) => item.productId);
 
     const products = await tx.product.findMany({
@@ -64,6 +67,14 @@ export async function createOrder(userId: string, input: CreateOrderInput) {
       include: { items: true },
     });
   });
+
+  try {
+    await enqueueOrderCreated(order.id);
+  } catch (error) {
+    logger.error({ err: error, orderId: order.id }, 'Failed to enqueue order-created job');
+  }
+
+  return order;
 }
 
 const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
@@ -138,7 +149,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
     throw AppError.conflict(`Cannot transition order from ${order.status} to ${status}`);
   }
 
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     if (status === 'CANCELLED') {
       await restockOrderItems(tx, id);
     }
@@ -154,10 +165,18 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
       include: ORDER_INCLUDE,
     });
   });
+
+  try {
+    await enqueueOrderStatusChanged(id);
+  } catch (error) {
+    logger.error({ err: error, orderId: id }, 'Failed to enqueue order-status-changed job');
+  }
+
+  return updated;
 }
 
 export async function cancelOrder(viewer: OrderViewer, id: string) {
-  return prisma.$transaction(async (tx) => {
+  const cancelled = await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id } });
     if (!order || order.userId !== viewer.id) {
       throw AppError.notFound('Order not found');
@@ -178,4 +197,15 @@ export async function cancelOrder(viewer: OrderViewer, id: string) {
       include: ORDER_INCLUDE,
     });
   });
+
+  try {
+    await enqueueOrderStatusChanged(id);
+  } catch (error) {
+    logger.error(
+      { err: error, orderId: id },
+      'Failed to enqueue order-status-changed job on cancel',
+    );
+  }
+
+  return cancelled;
 }
