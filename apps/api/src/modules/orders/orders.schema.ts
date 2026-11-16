@@ -31,6 +31,11 @@ export const listOrdersQuerySchema = z.object({
   userId: z.uuid().optional(),
 });
 
+export const updateOrderStatusSchema = z.object({
+  status: z.enum(OrderStatus),
+});
+
+export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type OrderIdParams = z.infer<typeof orderIdParamsSchema>;
 export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
 export type OrderItemInput = z.infer<typeof orderItemSchema>;

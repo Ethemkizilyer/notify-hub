@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { AppError } from '@/utils/app-error';
 import type { CreateOrderInput, ListOrdersQuery } from './orders.schema';
-import type { Prisma, Role } from '@/generated/prisma/browser';
+import type { OrderStatus, Prisma, Role } from '@/generated/prisma/browser';
 import { PUBLIC_USER_SELECT } from '../auth/auth.service';
 import { getSkip } from '@/utils/pagination';
 type OrderViewer = { id: string; role: Role };
@@ -66,6 +66,24 @@ export async function createOrder(userId: string, input: CreateOrderInput) {
   });
 }
 
+const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+async function restockOrderItems(tx: Prisma.TransactionClient, orderId: string): Promise<void> {
+  const items = await tx.orderItem.findMany({ where: { orderId } });
+  for (const item of items) {
+    await tx.product.update({
+      where: { id: item.productId },
+      data: { stock: { increment: item.quantity } },
+    });
+  }
+}
+
 const ORDER_INCLUDE = {
   items: {
     include: {
@@ -110,4 +128,54 @@ export async function getOrderById(viewer: OrderViewer, id: string) {
   }
 
   return order;
+}
+
+export async function updateOrderStatus(id: string, status: OrderStatus) {
+  const order = await prisma.order.findUnique({ where: { id } });
+  if (!order) throw AppError.notFound('Order not found');
+
+  if (!allowedTransitions[order.status].includes(status)) {
+    throw AppError.conflict(`Cannot transition order from ${order.status} to ${status}`);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    if (status === 'CANCELLED') {
+      await restockOrderItems(tx, id);
+    }
+    const { count } = await tx.order.updateMany({
+      where: { id, status: order.status },
+      data: { status },
+    });
+    if (count === 0) {
+      throw AppError.conflict('Order status changed concurrently');
+    }
+    return tx.order.findUniqueOrThrow({
+      where: { id },
+      include: ORDER_INCLUDE,
+    });
+  });
+}
+
+export async function cancelOrder(viewer: OrderViewer, id: string) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id } });
+    if (!order || order.userId !== viewer.id) {
+      throw AppError.notFound('Order not found');
+    }
+
+    const { count } = await tx.order.updateMany({
+      where: { id, status: 'PENDING' },
+      data: { status: 'CANCELLED' },
+    });
+    if (count === 0) {
+      throw AppError.conflict('Only pending orders can be cancelled');
+    }
+
+    await restockOrderItems(tx, id);
+
+    return tx.order.findUniqueOrThrow({
+      where: { id },
+      include: ORDER_INCLUDE,
+    });
+  });
 }
