@@ -1,3 +1,5 @@
+import swaggerUi from 'swagger-ui-express';
+import { openApiDocument } from '@/docs/openapi';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -11,6 +13,13 @@ import { env } from './config/env';
 import { apiRateLimiter } from './middlewares/rate-limits';
 
 export const app = express();
+app.use(
+  '/api/docs',
+  helmet({ contentSecurityPolicy: false }),
+  swaggerUi.serve,
+  swaggerUi.setup(openApiDocument, { customSiteTitle: 'NotifyHub API' }),
+);
+
 app.use(helmet());
 app.use(cors({ origin: env.WEB_URL, credentials: true }));
 app.use(express.json({ limit: '100kb' }));
