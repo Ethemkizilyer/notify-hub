@@ -20,6 +20,6 @@ Thumbs.db
 .DS_Store
 
 # Local docs and AI files
-docs/
+/docs/
 AGENTS.md
 .agents/
