@@ -1,0 +1,34 @@
+# Dependencies
+**/node_modules
+
+# Build output
+**/dist
+**/coverage
+
+# Environment / secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# VCS & tooling
+**/.git
+**/.husky
+**/.vscode
+**/.idea
+
+# Docs (image'da gereksiz)
+docs/
+.agents/
+AGENTS.md
+*.md
+!README.md
+
+# Misc
+**/*.log
+**/.DS_Store
+**/Thumbs.db
+
+# Docker files themselves
+**/*Dockerfile
+compose*.yaml
+.dockerignore
