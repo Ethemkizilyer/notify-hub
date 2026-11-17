@@ -120,7 +120,6 @@ docs/      Mimari kararlar, yol haritası, kod standartları
 
 Detaylı mimari ve API tasarımı için `docs/02-mimari-ve-kararlar.md`, yol haritası için `docs/03-yol-haritasi.md`.
 
-```markdown
 ## Özellikler
 
 - JWT access + refresh token ile kimlik doğrulama (refresh token httpOnly cookie'de, DB'de hash'li)
@@ -141,4 +140,3 @@ Detaylı mimari ve API tasarımı için `docs/02-mimari-ve-kararlar.md`, yol har
 - **Bildirimler kuyrukta**: sipariş isteği bildirim yüzünden yavaşlamaz, worker ayrı process'te ölçeklenir.
 - **Fiyat her zaman sunucudan okunur**: istemcinin gönderdiği fiyata güvenilmez.
 - **`z.infer` ile tek kaynak**: Zod şemaları `packages/shared`'da, API ve frontend aynı kuralları kullanır.
-```
