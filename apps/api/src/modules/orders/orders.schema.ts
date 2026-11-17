@@ -1,25 +1,9 @@
 import { OrderStatus } from '@/generated/prisma/browser';
 import { z } from 'zod';
+import { createOrderSchema, orderItemSchema } from '@notifyhub/shared';
 
-export const orderItemSchema = z.object({
-  productId: z.uuid(),
-  quantity: z.number().int().min(1).max(99),
-});
+export { createOrderSchema, orderItemSchema };
 
-export const createOrderSchema = z
-  .object({
-    items: z.array(orderItemSchema).min(1).max(50),
-  })
-  .superRefine((data, ctx) => {
-    const ids = data.items.map((item) => item.productId);
-    if (new Set(ids).size !== ids.length) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['items'],
-        message: 'Duplicate productId in items',
-      });
-    }
-  });
 export const orderIdParamsSchema = z.object({
   id: z.uuid(),
 });

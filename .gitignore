@@ -10,7 +10,6 @@ coverage
 #Env files
 .env*
 !.env.example
-!.env.test
 
 # Ignore log files and error reports
 *.log
@@ -20,6 +19,6 @@ Thumbs.db
 .DS_Store
 
 # Local docs and AI files
-docs/
+/docs/
 AGENTS.md
 .agents/
