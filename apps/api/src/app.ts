@@ -8,6 +8,7 @@ import { logger } from './lib/logger';
 import { errorHandler } from './middlewares/error-handler';
 import { notFoundHandler } from './middlewares/not-found';
 import { env } from './config/env';
+import { apiRateLimiter } from './middlewares/rate-limits';
 
 export const app = express();
 app.use(helmet());
@@ -15,6 +16,7 @@ app.use(cors({ origin: env.WEB_URL, credentials: true }));
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 app.use(pinoHttp({ logger }));
+app.use('/api/v1', apiRateLimiter);
 app.use('/api/v1', router);
 app.use(notFoundHandler);
 app.use(errorHandler);
