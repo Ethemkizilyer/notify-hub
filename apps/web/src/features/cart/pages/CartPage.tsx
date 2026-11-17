@@ -11,7 +11,7 @@ import { PageHeading } from '@/components/PageHeading';
 import { useCreateOrder } from '@/features/orders/hooks/use-orders';
 import { MAX_QUANTITY, useCartStore } from '@/stores/cart.store';
 import { formatPrice } from '@/utils/format-price';
-import { getErrorMessage } from '@/utils/get-error-message';
+import { getOrderErrorMessage } from '@/utils/get-order-error-message';
 
 export function CartPage() {
   const items = useCartStore((state) => state.items);
@@ -71,7 +71,7 @@ export function CartPage() {
 
       {createOrder.isError && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 3 }}>
-          {getErrorMessage(createOrder.error)}
+          {getOrderErrorMessage(createOrder.error)}
         </Alert>
       )}
 

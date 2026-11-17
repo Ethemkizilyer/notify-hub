@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -16,44 +16,102 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import AddShoppingCartOutlinedIcon from '@mui/icons-material/AddShoppingCartOutlined';
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import type { ListProductsQuery } from '@notifyhub/shared';
+import { listProductsQuerySchema, type ListProductsQuery } from '@notifyhub/shared';
+import { useSearchParams } from 'react-router';
 import { EmptyState } from '@/components/EmptyState';
+import { ProductCard } from '@/features/products/components/ProductCard';
 import { useProducts } from '@/features/products/hooks/use-products';
 import { useCartStore } from '@/stores/cart.store';
-import { formatPrice } from '@/utils/format-price';
 import { getErrorMessage } from '@/utils/get-error-message';
 
 const PAGE_SIZE = 12;
-const PRODUCT_ART = [
-  { background: 'linear-gradient(145deg, #e9e7d9, #c9d5c4)', color: '#315b48' },
-  { background: 'linear-gradient(145deg, #f4e3d3, #e5bca0)', color: '#955d42' },
-  { background: 'linear-gradient(145deg, #dce8e5, #a7c9bd)', color: '#376b61' },
-  { background: 'linear-gradient(145deg, #eee5ce, #dfc58f)', color: '#81652d' },
-] as const;
-type ProductSort = 'newest' | 'price-asc' | 'price-desc';
+const DEFAULT_QUERY = listProductsQuerySchema.parse({ limit: PAGE_SIZE });
+type ProductSort =
+  | 'newest'
+  | 'oldest'
+  | 'price-asc'
+  | 'price-desc'
+  | 'name-asc'
+  | 'name-desc'
+  | 'stock-asc'
+  | 'stock-desc';
+
+const SORT_QUERY: Record<ProductSort, Pick<ListProductsQuery, 'sort' | 'order'>> = {
+  newest: { sort: 'createdAt', order: 'desc' },
+  oldest: { sort: 'createdAt', order: 'asc' },
+  'price-asc': { sort: 'priceCents', order: 'asc' },
+  'price-desc': { sort: 'priceCents', order: 'desc' },
+  'name-asc': { sort: 'name', order: 'asc' },
+  'name-desc': { sort: 'name', order: 'desc' },
+  'stock-asc': { sort: 'stock', order: 'asc' },
+  'stock-desc': { sort: 'stock', order: 'desc' },
+};
+
+function getSortPreset(query: ListProductsQuery): ProductSort {
+  if (query.sort === 'priceCents') return query.order === 'asc' ? 'price-asc' : 'price-desc';
+  if (query.sort === 'name') return query.order === 'asc' ? 'name-asc' : 'name-desc';
+  if (query.sort === 'stock') return query.order === 'asc' ? 'stock-asc' : 'stock-desc';
+  return query.order === 'asc' ? 'oldest' : 'newest';
+}
 
 export function ProductsPage() {
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<ProductSort>('newest');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryResult = listProductsQuerySchema.safeParse({
+    page: searchParams.get('page') ?? undefined,
+    limit: PAGE_SIZE,
+    search: searchParams.get('search') || undefined,
+    sort: searchParams.get('sort') ?? undefined,
+    order: searchParams.get('order') ?? undefined,
+  });
+  const query = queryResult.success ? queryResult.data : DEFAULT_QUERY;
+  const urlSearch = query.search ?? '';
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const addItem = useCartStore((state) => state.addItem);
 
-  const query: ListProductsQuery = {
-    page,
-    limit: PAGE_SIZE,
-    search: search.trim() || undefined,
-    sort: sort === 'newest' ? 'createdAt' : 'priceCents',
-    order: sort === 'newest' || sort === 'price-desc' ? 'desc' : 'asc',
-  };
   const products = useProducts(query);
 
-  function handleSearch(value: string) {
-    setSearch(value);
-    setPage(1);
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+
+  useEffect(() => {
+    if (queryResult.success) return;
+    const nextParams = new URLSearchParams(searchParams);
+    for (const key of ['page', 'search', 'sort', 'order']) nextParams.delete(key);
+    setSearchParams(nextParams, { replace: true });
+  }, [queryResult.success, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const normalizedSearch = searchInput.trim();
+    if (normalizedSearch === urlSearch) return;
+
+    const timeout = window.setTimeout(() => {
+      const nextParams = new URLSearchParams(searchParams);
+      if (normalizedSearch) nextParams.set('search', normalizedSearch);
+      else nextParams.delete('search');
+      nextParams.delete('page');
+      setSearchParams(nextParams, { replace: true });
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [searchInput, searchParams, setSearchParams, urlSearch]);
+
+  function handleSort(value: ProductSort) {
+    const nextParams = new URLSearchParams(searchParams);
+    const selected = SORT_QUERY[value];
+    nextParams.set('sort', selected.sort);
+    nextParams.set('order', selected.order);
+    nextParams.delete('page');
+    setSearchParams(nextParams);
+  }
+
+  function handlePageChange(value: number) {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('page', String(value));
+    setSearchParams(nextParams);
   }
 
   return (
@@ -184,8 +242,8 @@ export function ProductsPage() {
             sx={{ width: { xs: '100%', md: 'auto' } }}
           >
             <TextField
-              value={search}
-              onChange={(event) => handleSearch(event.target.value)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Ürünlerde ara"
               aria-label="Ürünlerde ara"
               sx={{ width: { xs: '100%', sm: 290 } }}
@@ -201,16 +259,18 @@ export function ProductsPage() {
             />
             <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 190 } }}>
               <Select
-                value={sort}
+                value={getSortPreset(query)}
                 aria-label="Ürünleri sırala"
-                onChange={(event) => {
-                  setSort(event.target.value);
-                  setPage(1);
-                }}
+                onChange={(event) => handleSort(event.target.value)}
               >
                 <MenuItem value="newest">En yeni eklenenler</MenuItem>
+                <MenuItem value="oldest">En eski eklenenler</MenuItem>
                 <MenuItem value="price-asc">Fiyat: artan</MenuItem>
                 <MenuItem value="price-desc">Fiyat: azalan</MenuItem>
+                <MenuItem value="name-asc">Ad: A-Z</MenuItem>
+                <MenuItem value="name-desc">Ad: Z-A</MenuItem>
+                <MenuItem value="stock-asc">Stok: artan</MenuItem>
+                <MenuItem value="stock-desc">Stok: azalan</MenuItem>
               </Select>
             </FormControl>
           </Stack>
@@ -255,7 +315,7 @@ export function ProductsPage() {
             title="Aradığını bulamadık"
             description="Farklı bir kelime deneyebilir ya da aramayı temizleyip tüm ürünlere dönebilirsin."
             actionLabel="Aramayı temizle"
-            onAction={() => handleSearch('')}
+            onAction={() => setSearchInput('')}
           />
         ) : (
           <>
@@ -277,119 +337,19 @@ export function ProductsPage() {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 245px), 1fr))',
               }}
             >
-              {products.data?.data.map((product, index) => {
-                const art = PRODUCT_ART[index % PRODUCT_ART.length] ?? PRODUCT_ART[0];
-                return (
-                  <Card
-                    key={product.id}
-                    sx={{
-                      overflow: 'hidden',
-                      transition: 'transform 220ms ease, box-shadow 220ms ease',
-                      '&:hover': {
-                        transform: 'translateY(-5px)',
-                        boxShadow: '0 20px 42px rgba(34, 48, 38, 0.12)',
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        position: 'relative',
-                        overflow: 'hidden',
-                        mx: 1.25,
-                        mt: 1.25,
-                        height: 205,
-                        display: 'grid',
-                        placeItems: 'center',
-                        borderRadius: 3.5,
-                        background: art.background,
-                      }}
-                    >
-                      <Box
-                        aria-hidden="true"
-                        sx={{
-                          width: 124,
-                          height: 145,
-                          display: 'grid',
-                          placeItems: 'center',
-                          borderRadius: '32px 32px 42px 42px',
-                          color: art.color,
-                          bgcolor: 'rgba(255,255,255,0.44)',
-                          border: '1px solid rgba(255,255,255,0.6)',
-                          boxShadow: '0 18px 34px rgba(36, 50, 40, 0.12)',
-                          transform: 'rotate(-5deg)',
-                        }}
-                      >
-                        <Inventory2OutlinedIcon sx={{ fontSize: 58, strokeWidth: 1 }} />
-                      </Box>
-                      <Chip
-                        size="small"
-                        label={product.stock > 0 ? 'Stokta' : 'Tükendi'}
-                        sx={{
-                          position: 'absolute',
-                          top: 12,
-                          left: 12,
-                          bgcolor: 'rgba(255, 254, 250, 0.88)',
-                          color: product.stock > 0 ? 'primary.main' : 'error.main',
-                          backdropFilter: 'blur(8px)',
-                        }}
-                      />
-                    </Box>
-                    <CardContent sx={{ p: 2.25, pb: '18px !important' }}>
-                      <Typography
-                        variant="h6"
-                        component="h3"
-                        noWrap
-                        title={product.name}
-                        sx={{ fontSize: '1.02rem' }}
-                      >
-                        {product.name}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          mt: 0.5,
-                          minHeight: 40,
-                          display: '-webkit-box',
-                          overflow: 'hidden',
-                          WebkitBoxOrient: 'vertical',
-                          WebkitLineClamp: 2,
-                        }}
-                      >
-                        {product.description || 'Günlük hayatına iyi gelecek özenli bir seçim.'}
-                      </Typography>
-                      <Stack
-                        direction="row"
-                        sx={{ alignItems: 'baseline', justifyContent: 'space-between', mt: 1.75 }}
-                      >
-                        <Typography variant="h5" color="primary.main">
-                          {formatPrice(product.priceCents)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {product.stock > 0 ? `${product.stock} adet` : 'Stokta yok'}
-                        </Typography>
-                      </Stack>
-                      <Button
-                        fullWidth
-                        variant={product.stock > 0 ? 'contained' : 'outlined'}
-                        color={product.stock > 0 ? 'primary' : 'inherit'}
-                        startIcon={<AddShoppingCartOutlinedIcon />}
-                        disabled={product.stock === 0}
-                        onClick={() =>
-                          addItem({
-                            productId: product.id,
-                            name: product.name,
-                            priceCents: product.priceCents,
-                          })
-                        }
-                        sx={{ mt: 2 }}
-                      >
-                        {product.stock === 0 ? 'Şu an stokta yok' : 'Sepete ekle'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {products.data?.data.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={(selectedProduct) =>
+                    addItem({
+                      productId: selectedProduct.id,
+                      name: selectedProduct.name,
+                      priceCents: selectedProduct.priceCents,
+                    })
+                  }
+                />
+              ))}
             </Box>
           </>
         )}
@@ -401,12 +361,12 @@ export function ProductsPage() {
             sx={{ mt: 4, alignItems: 'center', justifyContent: 'space-between' }}
           >
             <Typography variant="body2" color="text.secondary">
-              Sayfa {page} / {products.data.meta.totalPages}
+              Sayfa {query.page} / {products.data.meta.totalPages}
             </Typography>
             <Pagination
               count={products.data.meta.totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
+              page={query.page}
+              onChange={(_, value) => handlePageChange(value)}
               shape="rounded"
               color="primary"
               siblingCount={0}

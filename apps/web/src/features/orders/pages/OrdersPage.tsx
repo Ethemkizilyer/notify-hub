@@ -13,9 +13,11 @@ import {
 } from '@mui/material';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import type { OrderStatus } from '@notifyhub/shared';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeading } from '@/components/PageHeading';
+import { Link as RouterLink } from 'react-router';
 import { useCancelOrder, useOrders } from '@/features/orders/hooks/use-orders';
 import { formatPrice } from '@/utils/format-price';
 import { getErrorMessage } from '@/utils/get-error-message';
@@ -181,18 +183,27 @@ export function OrdersPage() {
                       .map((item) => `${item.product?.name ?? 'Ürün'} × ${item.quantity}`)
                       .join('  ·  ')}
                   </Typography>
-                  {order.status === 'PENDING' && (
+                  <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
                     <Button
-                      color="error"
+                      component={RouterLink}
+                      to={`/orders/${order.id}`}
                       size="small"
-                      onClick={() => cancel.mutate(order.id)}
-                      disabled={cancel.isPending}
-                      endIcon={<ArrowForwardRoundedIcon />}
-                      sx={{ flexShrink: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }}
+                      endIcon={<OpenInNewRoundedIcon />}
                     >
-                      Siparişi iptal et
+                      Detay
                     </Button>
-                  )}
+                    {order.status === 'PENDING' && (
+                      <Button
+                        color="error"
+                        size="small"
+                        onClick={() => cancel.mutate(order.id)}
+                        disabled={cancel.isPending}
+                        endIcon={<ArrowForwardRoundedIcon />}
+                      >
+                        İptal et
+                      </Button>
+                    )}
+                  </Stack>
                 </Stack>
               </Paper>
             );

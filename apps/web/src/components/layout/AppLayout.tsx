@@ -19,6 +19,7 @@ import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { CartDrawer } from '@/features/cart/components/CartDrawer';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { useNotificationSocket } from '@/features/notifications/hooks/use-notifications';
 import { logout } from '@/features/auth/api/auth.api';
@@ -63,6 +64,7 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [toast, setToast] = useState<string | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useNotificationSocket((event) => setToast(event.title));
 
@@ -81,6 +83,11 @@ export function AppLayout() {
     ...(user?.role === 'ADMIN'
       ? [
           {
+            to: '/admin',
+            label: 'Genel bakış',
+            active: location.pathname === '/admin',
+          },
+          {
             to: '/admin/products',
             label: 'Ürün yönetimi',
             active: location.pathname === '/admin/products',
@@ -89,6 +96,11 @@ export function AppLayout() {
             to: '/admin/orders',
             label: 'Sipariş yönetimi',
             active: location.pathname === '/admin/orders',
+          },
+          {
+            to: '/admin/users',
+            label: 'Kullanıcılar',
+            active: location.pathname === '/admin/users',
           },
         ]
       : []),
@@ -165,7 +177,7 @@ export function AppLayout() {
             <Stack
               direction="row"
               spacing={0.5}
-              sx={{ ml: 3, display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}
+              sx={{ ml: 3, display: { xs: 'none', lg: 'flex' }, alignItems: 'center' }}
             >
               {navItems.map((item) => (
                 <NavItem key={item.to} {...item} />
@@ -199,8 +211,7 @@ export function AppLayout() {
                 <Tooltip title="Sepetim">
                   <IconButton
                     aria-label="Sepetim"
-                    component={RouterLink}
-                    to="/cart"
+                    onClick={() => setCartOpen(true)}
                     sx={{ color: 'text.primary' }}
                   >
                     <Badge badgeContent={cartCount} color="secondary" max={99}>
@@ -234,7 +245,7 @@ export function AppLayout() {
             direction="row"
             spacing={0.5}
             sx={{
-              display: { xs: 'flex', md: 'none' },
+              display: { xs: 'flex', lg: 'none' },
               overflowX: 'auto',
               pb: 1.25,
               mx: -1,
@@ -315,6 +326,7 @@ export function AppLayout() {
           {toast}
         </Alert>
       </Snackbar>
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </Box>
   );
 }
