@@ -1,0 +1,22 @@
+import type {
+  ApiResponse,
+  CreateProductInput,
+  ListProductsQuery,
+  PaginatedResponse,
+} from '@notifyhub/shared';
+import { apiClient } from '@/lib/api-client';
+import type { Product } from '@/types/domain';
+
+export async function listProducts(query: ListProductsQuery): Promise<PaginatedResponse<Product>> {
+  const { data } = await apiClient.get<PaginatedResponse<Product>>('/products', { params: query });
+  return data;
+}
+
+export async function createProduct(input: CreateProductInput): Promise<Product> {
+  const { data } = await apiClient.post<ApiResponse<Product>>('/products', input);
+  return data.data;
+}
+
+export async function deactivateProduct(id: string): Promise<void> {
+  await apiClient.delete(`/products/${id}`);
+}
