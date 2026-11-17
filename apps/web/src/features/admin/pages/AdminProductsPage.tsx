@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Chip,
+  IconButton,
   Paper,
   Skeleton,
   Stack,
@@ -18,16 +19,24 @@ import {
   Typography,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import { createProductSchema, type CreateProductFormValues } from '@notifyhub/shared';
+import {
+  createProductSchema,
+  type CreateProductFormValues,
+  type UpdateProductInput,
+} from '@notifyhub/shared';
 import { useForm } from 'react-hook-form';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeading } from '@/components/PageHeading';
+import { ProductEditDialog } from '@/features/admin/components/ProductEditDialog';
 import {
   useCreateProduct,
   useDeactivateProduct,
   useProducts,
+  useUpdateProduct,
 } from '@/features/products/hooks/use-products';
+import type { Product } from '@/types/domain';
 import { formatPrice } from '@/utils/format-price';
 import { getErrorMessage } from '@/utils/get-error-message';
 import { Pagination } from '@mui/material';
@@ -39,6 +48,8 @@ export function AdminProductsPage() {
   const products = useProducts({ page, limit: PAGE_SIZE, sort: 'createdAt', order: 'desc' });
   const createProduct = useCreateProduct();
   const deactivate = useDeactivateProduct();
+  const updateProduct = useUpdateProduct();
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const {
     register,
     handleSubmit,
@@ -51,6 +62,10 @@ export function AdminProductsPage() {
 
   const onSubmit = (values: CreateProductFormValues) =>
     createProduct.mutate(createProductSchema.parse(values), { onSuccess: () => reset() });
+
+  function handleUpdate(id: string, input: UpdateProductInput) {
+    updateProduct.mutate({ id, input }, { onSuccess: () => setEditingProduct(null) });
+  }
 
   return (
     <Box>
@@ -125,7 +140,7 @@ export function AdminProductsPage() {
                     <TableCell>Ürün</TableCell>
                     <TableCell align="right">Fiyat</TableCell>
                     <TableCell align="right">Stok</TableCell>
-                    <TableCell align="right">İşlem</TableCell>
+                    <TableCell align="right">İşlemler</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -175,6 +190,17 @@ export function AdminProductsPage() {
                         />
                       </TableCell>
                       <TableCell align="right">
+                        <IconButton
+                          aria-label={`${product.name} ürününü düzenle`}
+                          onClick={() => {
+                            updateProduct.reset();
+                            setEditingProduct(product);
+                          }}
+                          size="small"
+                          sx={{ mr: 0.5 }}
+                        >
+                          <EditOutlinedIcon fontSize="small" />
+                        </IconButton>
                         <Button
                           color="error"
                           size="small"
@@ -304,6 +330,16 @@ export function AdminProductsPage() {
           </Stack>
         </Paper>
       </Box>
+
+      <ProductEditDialog
+        product={editingProduct}
+        isPending={updateProduct.isPending}
+        error={updateProduct.error}
+        onClose={() => {
+          if (!updateProduct.isPending) setEditingProduct(null);
+        }}
+        onSubmit={handleUpdate}
+      />
     </Box>
   );
 }

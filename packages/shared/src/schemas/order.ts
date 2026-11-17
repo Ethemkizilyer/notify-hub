@@ -1,8 +1,24 @@
 import { z } from 'zod';
+import { ORDER_STATUSES } from '../constants';
 
 export const orderItemSchema = z.object({
   productId: z.uuid(),
   quantity: z.number().int().min(1).max(99),
+});
+
+export const orderIdParamsSchema = z.object({
+  id: z.uuid(),
+});
+
+export const listOrdersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(ORDER_STATUSES).optional(),
+  userId: z.uuid().optional(),
+});
+
+export const updateOrderStatusSchema = z.object({
+  status: z.enum(ORDER_STATUSES),
 });
 
 export const createOrderSchema = z
@@ -22,3 +38,5 @@ export const createOrderSchema = z
 
 export type OrderItemInput = z.infer<typeof orderItemSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
+export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;

@@ -26,6 +26,13 @@ export const router = createBrowserRouter([
           })),
       },
       {
+        path: 'products/:id',
+        lazy: () =>
+          import('@/features/products/pages/ProductDetailPage').then((m) => ({
+            Component: m.ProductDetailPage,
+          })),
+      },
+      {
         element: <RequireAuth />,
         children: [
           {
@@ -40,11 +47,25 @@ export const router = createBrowserRouter([
                 Component: m.OrdersPage,
               })),
           },
+          {
+            path: 'orders/:id',
+            lazy: () =>
+              import('@/features/orders/pages/OrderDetailPage').then((m) => ({
+                Component: m.OrderDetailPage,
+              })),
+          },
         ],
       },
       {
         element: <RequireAuth role="ADMIN" />,
         children: [
+          {
+            path: 'admin',
+            lazy: () =>
+              import('@/features/admin/pages/AdminDashboardPage').then((m) => ({
+                Component: m.AdminDashboardPage,
+              })),
+          },
           {
             path: 'admin/products',
             lazy: () =>
@@ -57,6 +78,13 @@ export const router = createBrowserRouter([
             lazy: () =>
               import('@/features/admin/pages/AdminOrdersPage').then((m) => ({
                 Component: m.AdminOrdersPage,
+              })),
+          },
+          {
+            path: 'admin/users',
+            lazy: () =>
+              import('@/features/admin/pages/AdminUsersPage').then((m) => ({
+                Component: m.AdminUsersPage,
               })),
           },
         ],
