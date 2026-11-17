@@ -56,5 +56,12 @@ export function initSocket(httpServer: HttpServer) {
     });
   });
 
-  return io;
+  return {
+    io,
+    async close(): Promise<void> {
+      await io.close();
+      pubClient.disconnect();
+      subClient.disconnect();
+    },
+  };
 }
