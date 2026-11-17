@@ -1,6 +1,9 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 
-process.loadEnvFile('.env.test');
+if (existsSync('.env.test')) {
+  process.loadEnvFile('.env.test');
+}
 
 export default defineConfig({
   resolve: {
